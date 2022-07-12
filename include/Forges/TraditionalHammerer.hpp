@@ -26,6 +26,8 @@ class TraditionalHammerer {
   static void hammer(std::vector<volatile char *> &aggressors, size_t hammer_rounds);
 
   static void hammer_flush_early(std::vector<volatile char *> &aggressors, size_t reps);
+
 };
 
 #endif //BLACKSMITH_SRC_FORGES_TRADITIONALHAMMERER_HPP_
+

@@ -2,12 +2,10 @@
 
 #include "Utilities/TimeHelper.hpp"
 #include "Blacksmith.hpp"
-#include <iostream>
 
 /// Performs hammering on given aggressor rows for HAMMER_ROUNDS times.
 void TraditionalHammerer::hammer(std::vector<volatile char *> &aggressors) {
-  //hammer(aggressors, HAMMER_ROUNDS);
-  hammer_flush_early(aggressors, HAMMER_ROUNDS);
+  hammer(aggressors, HAMMER_ROUNDS);
 }
 
 void TraditionalHammerer::hammer(std::vector<volatile char *> &aggressors, size_t reps) {
@@ -83,8 +81,7 @@ void TraditionalHammerer::hammer_sync(std::vector<volatile char *> &aggressors, 
       after = rdtscp();
       lfence();
       // stop if an ACTIVATE was issued
-//      if ((after - before) > 1000) break;
-      if ((after - before) > 780) break;
+      if ((after - before) > 1000) break;
     }
   }
 }
@@ -260,112 +257,29 @@ void TraditionalHammerer::hammer_sync(std::vector<volatile char *> &aggressors, 
   std::uniform_int_distribution<size_t> dist(0, std::numeric_limits<size_t>::max());
 
   const auto execution_limit = get_timestamp_sec() + runtime_limit;
-  auto bg_loop_stamp = get_timestamp_sec();
-  size_t even = 0 ;
-  auto bg_looptime = 600;
-
-//  DATA_PATTERN pattern = DATA_PATTERN::STRIPE_0F;
-//  size_t aggressor_rows_size = MAX_ROWS;  // number of aggressor rows
-
   while (get_timestamp_sec() < execution_limit) {
-
-    if (get_timestamp_sec() > bg_loop_stamp + bg_looptime){
-      if (even%2 == 0){
-        memory.initialize(DATA_PATTERN::STRIPE_F0);
-//        pattern = DATA_PATTERN::STRIPE_F0;
-      } else {
-        memory.initialize(DATA_PATTERN::STRIPE_0F);
-//        pattern = DATA_PATTERN::STRIPE_0F;
-      }
-      bg_loop_stamp = get_timestamp_sec();
-      even += 1;
-      mfence();
-    }
-    
-//    if (aggressor_rows_size==MAX_ROWS){
-//      aggressor_rows_size = 3;
-//    }else{
-//      aggressor_rows_size = aggressor_rows_size +1;
-//    }
-    
-    //size_t aggressor_rows_size = (dist(gen)%(MAX_ROWS - 3)) + 3;  // number of aggressor rows
-    size_t aggressor_rows_size = 11;  // number of aggressor rows
+    size_t aggressor_rows_size = (dist(gen)%(MAX_ROWS - 3)) + 3;  // number of aggressor rows
     size_t v = 2;  // distance between aggressors (within a pair)
-    //size_t d = dist(gen)%16;  // distance of each double-sided aggressor pair
-    size_t d = 2;  // distance of each double-sided aggressor pair
+    size_t d = dist(gen)%16;  // distance of each double-sided aggressor pair
 
     for (size_t ba = 0; ba < 4; ba++) {
-      DRAMAddr cur_next_addr(ba, dist(gen)%(4096-d*aggressor_rows_size), 0);
-      DRAMAddr victim_addr = cur_next_addr;
+      DRAMAddr cur_next_addr(ba, dist(gen)%4096, 0);
 
       std::vector<volatile char *> aggressors;
-      std::vector<volatile char *> victim;
       std::stringstream ss;
-      ss << "victim row : ";
-
-      for (size_t i = 1; i < aggressor_rows_size; i += 2) {
-
-        if (d==2){
-          if (i==1){
-            victim_addr.add_inplace(0, d-2, 0);
-            ss << victim_addr.row << " ";
-            victim.push_back((volatile char *) victim_addr.to_virt());
-          }
-        
-          victim_addr.add_inplace(0, 2, 0);
-          ss << victim_addr.row << " ";
-          victim.push_back((volatile char *) victim_addr.to_virt());
-
-          victim_addr.add_inplace(0, 2, 0);
-          ss << victim_addr.row << " ";
-          victim.push_back((volatile char *) victim_addr.to_virt());
-        
-        }else{
-          if (i==1){
-            victim_addr.add_inplace(0, d-1, 0);
-            ss << victim_addr.row << " ";
-            victim.push_back((volatile char *) victim_addr.to_virt());
-          }else{
-            victim_addr.add_inplace(0, d-2, 0);
-            ss << victim_addr.row << " ";
-            victim.push_back((volatile char *) victim_addr.to_virt());
-          }
-        
-        victim_addr.add_inplace(0, 2, 0);
-        ss << victim_addr.row << " ";
-        victim.push_back((volatile char *) victim_addr.to_virt());
-
-        victim_addr.add_inplace(0, 2, 0);
-        ss << victim_addr.row << " ";
-        victim.push_back((volatile char *) victim_addr.to_virt());
-        }
-      }
-
-      if(aggressor_rows_size%2!=0){
-          victim_addr.add_inplace(0, 2, 0);
-          ss << victim_addr.row << " ";
-          victim.push_back((volatile char *) victim_addr.to_virt());
-      }
 
       ss << "agg row: ";
       for (size_t i = 1; i < aggressor_rows_size; i += 2) {
-        
-        if (i==1){
-        cur_next_addr.add_inplace(0, d-1, 0);
-        ss << cur_next_addr.row << " ";
-        aggressors.push_back((volatile char *) cur_next_addr.to_virt());
-        } else {
         cur_next_addr.add_inplace(0, d, 0);
         ss << cur_next_addr.row << " ";
         aggressors.push_back((volatile char *) cur_next_addr.to_virt());
-        }
+
         cur_next_addr.add_inplace(0, v, 0);
         ss << cur_next_addr.row << " ";
         aggressors.push_back((volatile char *) cur_next_addr.to_virt());
       }
 
       if ((aggressor_rows_size%2)!=0) {
-        cur_next_addr.add_inplace(0, v, 0);
         ss << cur_next_addr.row << " ";
         aggressors.push_back((volatile char *) cur_next_addr.to_virt());
       }
@@ -394,9 +308,7 @@ void TraditionalHammerer::hammer_sync(std::vector<volatile char *> &aggressors, 
       }
 
       // check 100 rows before and after for flipped bits
-      //memory.check_memory(aggressors[0], aggressors[aggressors.size() - 1]);
-      memory.check_victim_memory(victim, v, d, ba, even);
-    
+      memory.check_memory(aggressors[0], aggressors[aggressors.size() - 1]);
     }
   }
 }

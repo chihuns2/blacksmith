@@ -41,7 +41,8 @@ int check_cpu() {
       "i7-8086",
       "i7-8700",
       "i7-9700",
-      "i7-9900"
+      "i7-9900",
+      "E5-2640"
   };
 
   bool cpu_supported = false;
@@ -89,8 +90,8 @@ int main(int argc, char **argv) {
   DRAMAddr::initialize(dram_analyzer.get_bank_rank_functions().size(), memory.get_starting_address());
 
   // count the number of possible activations per refresh interval, if not given as program argument
-  if (program_args.acts_per_trefi==0)
-    program_args.acts_per_trefi = dram_analyzer.count_acts_per_trefi();
+  if (program_args.acts_per_ref==0)
+    program_args.acts_per_ref = dram_analyzer.count_acts_per_ref()*2;
 
   if (!program_args.load_json_filename.empty()) {
     ReplayingHammerer replayer(memory);
@@ -101,12 +102,12 @@ int main(int argc, char **argv) {
       replayer.replay_patterns(program_args.load_json_filename, program_args.pattern_ids);
     }
   } else if (program_args.do_fuzzing && program_args.use_synchronization) {
-    FuzzyHammerer::n_sided_frequency_based_hammering(dram_analyzer, memory, static_cast<int>(program_args.acts_per_trefi), program_args.runtime_limit,
+    FuzzyHammerer::n_sided_frequency_based_hammering(dram_analyzer, memory, static_cast<int>(program_args.acts_per_ref), program_args.runtime_limit,
         program_args.num_address_mappings_per_pattern, program_args.sweeping);
   } else if (!program_args.do_fuzzing) {
-//    TraditionalHammerer::n_sided_hammer(memory, program_args.acts_per_trefi, program_args.runtime_limit);
-//    TraditionalHammerer::n_sided_hammer_experiment(memory, program_args.acts_per_trefi);
-    TraditionalHammerer::n_sided_hammer_experiment_frequencies(memory);
+    TraditionalHammerer::n_sided_hammer(memory, program_args.acts_per_ref, program_args.runtime_limit);
+//    TraditionalHammerer::n_sided_hammer_experiment(memory, program_args.acts_per_ref);
+//    TraditionalHammerer::n_sided_hammer_experiment_frequencies(memory);
   } else {
     Logger::log_error("Invalid combination of program control-flow arguments given. "
                       "Note: Fuzzing is only supported with synchronized hammering.");
@@ -196,10 +197,8 @@ void handle_args(int argc, char **argv) {
   program_args.runtime_limit = parsed_args["runtime-limit"].as<unsigned long>(program_args.runtime_limit);
   Logger::log_debug(format_string("Set --runtime_limit=%ld", program_args.runtime_limit));
 
-  program_args.acts_per_trefi = parsed_args["acts-per-ref"].as<size_t>(program_args.acts_per_trefi);
-  Logger::log_info(format_string("+++ %d", program_args.acts_per_trefi));
-  program_args.fixed_acts_per_ref = (program_args.acts_per_trefi != 0);
-  Logger::log_debug(format_string("Set --acts-per-ref=%d", program_args.acts_per_trefi));
+  program_args.acts_per_ref = parsed_args["acts-per-ref"].as<size_t>(program_args.acts_per_ref);
+  Logger::log_debug(format_string("Set --acts-per-ref=%d", program_args.acts_per_ref));
 
   program_args.num_address_mappings_per_pattern = parsed_args["probes"].as<size_t>(program_args.num_address_mappings_per_pattern);
   Logger::log_debug(format_string("Set --probes=%d", program_args.num_address_mappings_per_pattern));
@@ -223,8 +222,10 @@ void handle_args(int argc, char **argv) {
       program_args.pattern_ids = std::unordered_set<std::string>();
     }
   } else {
-    program_args.do_fuzzing = parsed_args["fuzzing"].as<bool>(true);
-    const bool default_sync = true;
+    //program_args.do_fuzzing = parsed_args["fuzzing"].as<bool>(true);
+    program_args.do_fuzzing = parsed_args["fuzzing"].as<bool>(false);
+    //const bool default_sync = true;
+    const bool default_sync = false;
     program_args.use_synchronization = parsed_args.has_option("sync") || default_sync;
   }
 }

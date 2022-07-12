@@ -1,0 +1,1 @@
+sudo ./blacksmith --dimm-id 1 --runtime-limit 259200 --ranks 2 -a 150 

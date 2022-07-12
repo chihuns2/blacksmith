@@ -14,7 +14,7 @@
 #include "Fuzzer/PatternAddressMapper.hpp"
 
 enum class DATA_PATTERN : char {
-  ZEROES, ONES, RANDOM
+  STRIPE_0F, STRIPE_F0, CHECK_5A, CHECK_A5, CHECK_69, CHECK_96, ZEROES, ONES, RANDOM
 };
 
 class Memory {
@@ -22,6 +22,7 @@ class Memory {
   /// the starting address of the allocated memory area
   /// this is a fixed value as the assumption is that all memory cells are equally vulnerable
   volatile char *start_address = (volatile char *) 0x2000000000;
+//  volatile char *start_address = (volatile char *) NULL;
 
   // the mount point of the huge pages filesystem
   const std::string hugetlbfs_mountpoint = "/mnt/huge/buff";
@@ -35,6 +36,11 @@ class Memory {
   size_t check_memory_internal(PatternAddressMapper &mapping, const volatile char *start,
                                const volatile char *end, bool reproducibility_mode, bool verbose);
 
+  size_t check_memory_internal(PatternAddressMapper &mapping, const volatile char *start,
+                               const volatile char *end, bool reproducibility_mode, bool verbose, size_t row_inc, size_t distance, size_t bank, size_t agg_size);
+
+  size_t check_memory_internal(PatternAddressMapper &mapping, const volatile char *start,
+                               bool reproducibility_mode, bool verbose, size_t row_inc, size_t distance, size_t bank, size_t agg_size, size_t even);                               
  public:
 
   // the flipped bits detected during the last call to check_memory
@@ -49,6 +55,10 @@ class Memory {
   void initialize(DATA_PATTERN data_pattern);
 
   size_t check_memory(const volatile char *start, const volatile char *end);
+
+  size_t check_memory(std::vector<volatile char *> &aggressors, size_t row_inc, size_t distance, size_t bank);
+
+  size_t check_victim_memory(std::vector<volatile char *> &victim, size_t row_inc, size_t distance, size_t bank, size_t even);  
 
   size_t check_memory(PatternAddressMapper &mapping, bool reproducibility_mode, bool verbose);
 

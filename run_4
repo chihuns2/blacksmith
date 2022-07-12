@@ -1,0 +1,8 @@
+source run_rank2
+mv stdout.log stdout.log_0
+source run_rank2
+mv stdout.log stdout.log_1
+source run_rank2
+mv stdout.log stdout.log_2
+source run_rank2
+mv stdout.log stdout.log_3

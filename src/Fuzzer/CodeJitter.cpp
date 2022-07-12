@@ -120,7 +120,8 @@ void CodeJitter::jit_strict(int num_acts_per_trefi,
   // clflushopt addresses involved in sync
   for (int idx = 0; idx < NUM_TIMED_ACCESSES; idx++) {
     a.mov(asmjit::x86::rax, (uint64_t) aggressor_pairs[idx]);
-    a.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+    //a.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+    a.clflush(asmjit::x86::ptr(asmjit::x86::rax));
   }
   a.mfence();
 
@@ -168,7 +169,8 @@ void CodeJitter::jit_strict(int num_acts_per_trefi,
       // flush
       if (flushing==FLUSHING_STRATEGY::LATEST_POSSIBLE) {
         a.mov(asmjit::x86::rax, cur_addr);
-        a.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+        //a.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+        a.clflush(asmjit::x86::ptr(asmjit::x86::rax));
         accessed_before[cur_addr] = false;
       }
       // fence to ensure flushing finished and defined order of aggressors is guaranteed
@@ -188,7 +190,8 @@ void CodeJitter::jit_strict(int num_acts_per_trefi,
     // flush
     if (flushing==FLUSHING_STRATEGY::EARLIEST_POSSIBLE) {
       a.mov(asmjit::x86::rax, cur_addr);
-      a.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+      //a.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+      a.clflush(asmjit::x86::ptr(asmjit::x86::rax));
     }
     if (sync_each_ref
         && ((cnt_total_activations%num_acts_per_trefi)==0)) {
@@ -244,7 +247,8 @@ void CodeJitter::sync_ref(const std::vector<volatile char *> &aggressor_pairs, a
   for (auto agg : aggressor_pairs) {
     // flush
     assembler.mov(asmjit::x86::rax, (uint64_t) agg);
-    assembler.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+    //assembler.clflushopt(asmjit::x86::ptr(asmjit::x86::rax));
+    assembler.clflush(asmjit::x86::ptr(asmjit::x86::rax));
 
     // access
     assembler.mov(asmjit::x86::rax, (uint64_t) agg);

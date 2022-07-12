@@ -50,6 +50,13 @@ class Logger {
   static void log_bitflip(volatile char *flipped_address, uint64_t row_no, unsigned char actual_value,
                           unsigned char expected_value, unsigned long timestamp, bool newline);
 
+
+  static void log_bitflip(volatile char *flipped_address, uint64_t row_no, unsigned char actual_value,
+                          unsigned char expected_value, unsigned long timestamp, bool newline, size_t row_inc, size_t distance, size_t bank, size_t agg_size);
+
+  static void log_bitflip(volatile char *flipped_address, uint64_t row_no, uint64_t col_no, unsigned char actual_value,
+                          unsigned char expected_value, unsigned long timestamp, bool newline, size_t row_inc, size_t distance, size_t bank, size_t agg_size);
+
   static void log_debug(const std::string &message, bool newline = true);
 
   static void log_timestamp();

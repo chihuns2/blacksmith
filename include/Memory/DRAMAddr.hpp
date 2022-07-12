@@ -80,6 +80,8 @@ class DRAMAddr {
   static nlohmann::json get_memcfg_json();
 #endif
 
+  static uint64_t get_row_increment();
+
   static void initialize_configs();
 };
 

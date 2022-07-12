@@ -24,7 +24,7 @@
   asm volatile("clflush (%0)\n" ::"r"(p)
                : "memory");
 #else
-  asm volatile("clflushopt (%0)\n"::"r"(p)
+  asm volatile("clflush (%0)\n"::"r"(p)
   : "memory");
 #
 

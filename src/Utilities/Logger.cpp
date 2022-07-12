@@ -101,6 +101,41 @@ void Logger::log_bitflip(volatile char *flipped_address, uint64_t row_no, unsign
   if (newline) instance.logfile << "\n";
 }
 
+void Logger::log_bitflip(volatile char *flipped_address, uint64_t row_no, unsigned char actual_value,
+                         unsigned char expected_value, unsigned long timestamp, bool newline, size_t row_inc, size_t distance, size_t bank, size_t agg_size) {
+  instance.logfile << FC_GREEN
+                   << "[!] Flip " << std::hex << (void *) flipped_address << ", "
+                  << std::dec << "# of agg " << agg_size << ", "
+                   << std::dec << "row_inc " << row_inc << ", "
+                   << std::dec << "distance " << distance << ", "
+                   << std::dec << "bank " << bank << ", "
+                   << std::dec << "row " << row_no << ", "
+                   << "page offset: " << (uint64_t)flipped_address%(uint64_t)getpagesize() << ", "
+                   << "byte offset: " << (uint64_t)flipped_address%(uint64_t)8 << ", "
+                   << std::hex << "from " << (int) expected_value << " to " << (int) actual_value << ", "
+                   << std::dec << "detected after " << format_timestamp(timestamp - instance.timestamp_start) << ".";
+  instance.logfile << F_RESET;
+  if (newline) instance.logfile << "\n";
+}
+
+void Logger::log_bitflip(volatile char *flipped_address, uint64_t row_no, uint64_t col_no, unsigned char actual_value,
+                         unsigned char expected_value, unsigned long timestamp, bool newline, size_t row_inc, size_t distance, size_t bank, size_t agg_size) {
+  instance.logfile << FC_GREEN
+                   << "[!] Flip " << std::hex << (void *) flipped_address << ", "
+                  << std::dec << "# of agg " << agg_size << ", "
+                   << std::dec << "row_inc " << row_inc << ", "
+                   << std::dec << "distance " << distance << ", "
+                   << std::dec << "bank " << bank << ", "
+                   << std::dec << "row " << row_no << ", "
+                   << std::dec << "col " << col_no/8 << ", "
+//                   << "page offset: " << (uint64_t)flipped_address%(uint64_t)getpagesize() << ", "
+                   << "byte offset: " << (uint64_t)flipped_address%(uint64_t)8 << ", "
+                   << std::hex << "from " << (int) expected_value << " to " << (int) actual_value << ", "
+                   << std::dec << "detected after " << format_timestamp(timestamp - instance.timestamp_start) << ".";
+  instance.logfile << F_RESET;
+  if (newline) instance.logfile << "\n";
+}
+
 void Logger::log_success(const std::string &message, bool newline) {
   instance.logfile << FC_GREEN << "[!] " << message;
   instance.logfile << F_RESET;

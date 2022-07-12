@@ -92,11 +92,13 @@ std::vector<uint64_t> DramAnalyzer::get_bank_rank_functions() {
 
 void DramAnalyzer::load_known_functions(int num_ranks) {
   if (num_ranks==1) {
-    bank_rank_functions = std::vector<uint64_t>({0x2040, 0x24000, 0x48000, 0x90000});
-    row_function = 0x3ffe0000;
+    //case0
+    bank_rank_functions = std::vector<uint64_t>({0x2000, 0x200040, 0x440000, 0x880000, 0x1100000});
+    row_function = 0x3fe38000;
   } else if (num_ranks==2) {
-    bank_rank_functions = std::vector<uint64_t>({0x2040, 0x44000, 0x88000, 0x110000, 0x220000});
-    row_function = 0x3ffc0000;
+    //case0
+    bank_rank_functions = std::vector<uint64_t>({0x2000, 0x200040, 0x440000, 0x880000, 0x1100000});
+    row_function = 0x3fe38000;
   } else {
     Logger::log_error("Cannot load bank/rank and row function if num_ranks is not 1 or 2.");
     exit(1);
@@ -112,21 +114,24 @@ void DramAnalyzer::load_known_functions(int num_ranks) {
   Logger::log_data(ss.str());
 }
 
-size_t DramAnalyzer::count_acts_per_trefi() {
-  size_t skip_first_N = 50;
+size_t DramAnalyzer::count_acts_per_ref() {
   // pick two random same-bank addresses
   volatile char *a = banks.at(0).at(0);
   volatile char *b = banks.at(0).at(1);
 
+  size_t skip_first_N = 2000;
   std::vector<uint64_t> acts;
   uint64_t running_sum = 0;
-  uint64_t before;
-  uint64_t after;
-  uint64_t count = 0;
-  uint64_t count_old = 0;
+  uint64_t before, after;
+  uint64_t activation_count = 0, activation_count_old = 0;
+
+  // bring a and b into the cache
+  (void)*a;
+  (void)*b;
 
   // computes the standard deviation
-  auto compute_std = [](std::vector<uint64_t> &values, uint64_t running_sum, size_t num_numbers) {
+  auto compute_std = [](
+      std::vector<uint64_t> &values, uint64_t running_sum, size_t num_numbers) {
     double mean = static_cast<double>(running_sum)/static_cast<double>(num_numbers);
     double var = 0;
     for (const auto &num : values) {
@@ -154,17 +159,18 @@ size_t DramAnalyzer::count_acts_per_trefi() {
     // get end timestamp
     after = rdtscp();
 
-    count++;
-    if ((after - before) > 1000) {
-      if (i > skip_first_N && count_old!=0) {
-        // multiply by 2 to account for both accesses we do (a, b)
-        uint64_t value = (count - count_old)*2;
+    activation_count += 2;
+
+    if ((after - before) > 780) {
+      if (i > skip_first_N && activation_count_old!=0) {
+        uint64_t value = (activation_count - activation_count_old)*2;
         acts.push_back(value);
         running_sum += value;
         // check after each 200 data points if our standard deviation reached 1 -> then stop collecting measurements
-        if ((acts.size()%200)==0 && compute_std(acts, running_sum, acts.size())<3.0) break;
+        if ((acts.size()%200)==0 && compute_std(acts, running_sum, acts.size())<3.0)
+          break;
       }
-      count_old = count;
+      activation_count_old = activation_count;
     }
   }
 
